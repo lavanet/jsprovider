@@ -21,7 +21,6 @@ import { useState, useEffect, useRef } from "react";
 import { LavaSDKOptions, LavaSDK } from "@lavanet/lava-sdk";
 import { useRouter } from 'next/navigation'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { provider } from "starknet";
 
 const rpc = "https://rest-public-rpc-testnet2.lavanet.xyz"
 
