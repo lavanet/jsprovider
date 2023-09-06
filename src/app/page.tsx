@@ -1,5 +1,4 @@
 "use client";
-import { InformationCircleIcon } from "@heroicons/react/solid";
 import {
   Card,
   Grid,
@@ -10,18 +9,7 @@ import {
   TabGroup,
   TabPanel,
   TabPanels,
-  BadgeDelta,
-  DeltaType,
   Flex,
-  Metric,
-  ProgressBar,
-  AreaChart,
-  Color,
-  Icon,
-  MultiSelect,
-  MultiSelectItem,
-  Select,
-  SelectItem,
   Table,
   TableBody,
   TableCell,
@@ -33,6 +21,7 @@ import { useState, useEffect, useRef } from "react";
 import { LavaSDKOptions, LavaSDK } from "@lavanet/lava-sdk";
 import { useRouter } from 'next/navigation'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { provider } from "starknet";
 
 const rpc = "https://rest-public-rpc-testnet2.lavanet.xyz"
 
@@ -109,6 +98,7 @@ export default function Home() {
   const [activeChains, setActiveChains] = useState(0);
   const [totalStake, setTotalStake] = useState(0);
   const [tabProvider, setTabProvider] = useState<Provider | null>(null);
+  const [tabChain, setTabChain] = useState<ChainInfoList | null>(null);
   const [blockNumber, setBlockNumber] = useState(0);
   const [blockTime, setBlockTime] = useState<Date>(new Date());
   const tabRef = useRef<HTMLDivElement | null>(null);
@@ -144,9 +134,13 @@ export default function Home() {
                 if (chainList[i].chainID == stake.chain) {
                   if (chainList[i].providers === undefined) {
                     chainList[i].providers = new Map<string, Provider>();
+                    chainList[i].totalStake = 0;
                   }
                   if (provider != null) {
                     chainList[i].providers?.set(provider?.address, provider)
+                    if (chainList[i].totalStake !== undefined) {
+                      chainList[i].totalStake += parseInt(stake.stake.amount);
+                    }
                   }
                   break;
                 }
@@ -201,7 +195,7 @@ export default function Home() {
       } catch (error) {
         console.log("cosmosRelayParse", error, block)
       }
-      
+
       const info = await sdkInstance.sendRelay({
         method: "GET",
         url: "/lavanet/lava/spec/show_all_chains",
@@ -248,12 +242,43 @@ export default function Home() {
     if (provider == null) {
       return
     }
+    setTabChain(null);
     setTabProvider(provider);
+    setTimeout(() => {
+      const nodes = tabRef?.current?.childNodes;
+      if ((nodes?.length != undefined) && (nodes?.length == 4)) {
+        const el = nodes[2] as HTMLElement;
+        el.click();
+      }
+    }, 25);
+  }, [pathname, searchParams, addressToProvider])
+
+  useEffect(() => {
+    const go = searchParams.get('c');
+    if (go == null) {
+      return;
+    }
+    if (chainList == null) {
+      return;
+    }
+    let chain: null | ChainInfoList = null;
+    for (let i = 0; i < chainList.length; i++) {
+      if (go == chainList[i].chainID) {
+        chain = chainList[i];
+        break;
+      }
+    }
+    if (chain == null) {
+      return;
+    }
+    setTabProvider(null);
+    setTabChain(chain);
     setTimeout(() => {
       const el = tabRef?.current?.lastElementChild as HTMLElement;
       el.click();
     }, 25);
-  }, [pathname, searchParams, addressToProvider])
+  }, [pathname, searchParams, chainList])
+
 
   return (
     <main className="mx-auto p-12 max-w-7xl">
@@ -267,7 +292,8 @@ export default function Home() {
         <TabList ref={tabRef}>
           <Tab onClick={() => router.push('?')}>Chains</Tab>
           <Tab onClick={() => router.push('?')}>Providers</Tab>
-          {tabProvider == null ? <></> : <Tab>{tabProvider.moniker}</Tab>}
+          <Tab className={tabProvider == null ? "hidden" : ""}>{tabProvider == null ? "" : tabProvider.moniker}</Tab>
+          <Tab className={tabChain == null ? "hidden" : ""}>{tabChain == null ? "" : tabChain.chainID}</Tab>
         </TabList>
         <TabPanels>
           <TabPanel>
@@ -318,8 +344,8 @@ export default function Home() {
                         if (chain.providers != null) {
                           return (
                             <TableRow key={chain.chainID}>
-                              <TableCell>{chain.chainName}</TableCell>
-                              <TableCell>{chain.chainID}</TableCell>
+                              <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainName}</a></TableCell>
+                              <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainID}</a></TableCell>
                               <TableCell className="text-right">{chain.providers != null ? Array.from(chain.providers).length : 0}</TableCell>
                             </TableRow>
                           )
@@ -430,9 +456,77 @@ export default function Home() {
               </div>
             </TabPanel>
           }
+          {tabChain == null ? <></> :
+            <TabPanel>
+              <Grid numItemsLg={3} className="mt-6 gap-6">
+                <Card>
+                  <Flex alignItems="start">
+                    <div className="truncate">
+                      <Text>#APIs</Text>
+                      <Title className="truncate">{tabChain.api_count}</Title>
+                    </div>
+                  </Flex>
+                </Card>
+                <Card>
+                  <Flex alignItems="start">
+                    <div className="truncate">
+                      <Text>#Providers</Text>
+                      <Title className="truncate">{tabChain.providers?.size}</Title>
+                    </div>
+                  </Flex>
+                </Card>
+                <Card>
+                  <Flex alignItems="start">
+                    <div className="truncate">
+                      <Text>Total Stake</Text>
+                      <Title className="truncate">{tabChain.totalStake == undefined ? "0 LAVA" : ulavaToLava(tabChain.totalStake)}</Title>
+                    </div>
+                  </Flex>
+                </Card>
+              </Grid>
+              <div className="mt-6">
+                <Card>
+                  <>
+                    <div>
+                      <Flex className="space-x-0.5" justifyContent="start" alignItems="center">
+                        <Title>Provider Chains</Title>
+                      </Flex>
+                    </div>
+                    <Table className="mt-6">
+                      <TableHead>
+                        <TableRow>
+                          <TableHeaderCell>Provider</TableHeaderCell>
+                          <TableHeaderCell>Address</TableHeaderCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {
+                          tabChain.providers == undefined ? <></> :
+                          Array.from(tabChain.providers.values()).map((provider) => {
+                            return (
+                              <TableRow key={`${tabChain.chainID}${provider.address}`}>
+                                <TableCell>{provider.moniker}</TableCell>
+                                <TableCell>{provider.address}</TableCell>
+                              </TableRow>
+
+                              /*<TableRow key={`${provider.chain}${tabChain.chainID}`}>
+                                <TableCell>{provider.chain}</TableCell>
+                                <TableCell>{`${chain.stake.amount} ${chain.stake.denom}`}</TableCell>
+                                <TableCell>{chain.geolocation}</TableCell>
+                                <TableCell>{chain.stake_applied_block}</TableCell>
+                              </TableRow>*/
+                            )
+                          })
+                        }
+                      </TableBody>
+                    </Table>
+                  </>
+                </Card>
+              </div>
+            </TabPanel>
+          }
         </TabPanels>
       </TabGroup>
-
     </main>
   )
 }
