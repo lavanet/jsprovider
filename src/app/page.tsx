@@ -137,8 +137,9 @@ export default function Home() {
                   }
                   if (provider != null) {
                     chainList[i].providers?.set(provider?.address, provider)
-                    if (chainList[i].totalStake !== undefined) {
-                      chainList[i].totalStake += parseInt(stake.stake.amount);
+                    let tmp = chainList[i];
+                    if (tmp.totalStake !== undefined) {
+                      tmp.totalStake += parseInt(stake.stake.amount);
                     }
                   }
                   break;
