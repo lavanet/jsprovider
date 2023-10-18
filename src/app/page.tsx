@@ -116,7 +116,7 @@ export default function Home() {
           connectionType: "GET",
           url: `/lavanet/lava/pairing/providers/${chain.chainID}?showFrozen=true`,
         }).then((r: ProvidersChainRoot) => {
-         
+
           r.stakeEntry.forEach((stake) => {
             if (!tmpKeyToProvider.has(stake.address)) {
               tmpKeyToProvider.set(stake.address, {
@@ -144,8 +144,8 @@ export default function Home() {
                 break;
               }
             }
-        }) 
-          });
+          })
+        });
       });
       await Promise.all(t);
 
@@ -318,28 +318,62 @@ export default function Home() {
                       <Title>Chain List</Title>
                     </Flex>
                   </div>
-                  <Table className="mt-6">
-                    <TableHead>
-                      <TableRow>
-                        <TableHeaderCell>Chain Name</TableHeaderCell>
-                        <TableHeaderCell>Chain ID</TableHeaderCell>
-                        <TableHeaderCell className="text-right">#Providers</TableHeaderCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {chainList?.map((chain) => {
-                        if (chain.providers != null) {
-                          return (
-                            <TableRow key={chain.chainID}>
-                              <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainName}</a></TableCell>
-                              <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainID}</a></TableCell>
-                              <TableCell className="text-right">{chain.providers != null ? Array.from(chain.providers).length : 0}</TableCell>
+                  <TabGroup className="mt-6">
+                    <TabList>
+                      <Tab>Mainnet</Tab>
+                      <Tab>Testnet</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel>
+                        <Table className="mt-6">
+                          <TableHead>
+                            <TableRow>
+                              <TableHeaderCell>Chain Name</TableHeaderCell>
+                              <TableHeaderCell>Chain ID</TableHeaderCell>
+                              <TableHeaderCell className="text-right">#Providers</TableHeaderCell>
                             </TableRow>
-                          )
-                        }
-                      })}
-                    </TableBody>
-                  </Table>
+                          </TableHead>
+                          <TableBody>
+                            {chainList?.map((chain) => {
+                              if ((chain.providers != null) && (chain.chainName.indexOf('test') == -1)) {
+                                return (
+                                  <TableRow key={chain.chainID}>
+                                    <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainName}</a></TableCell>
+                                    <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainID}</a></TableCell>
+                                    <TableCell className="text-right">{chain.providers != null ? Array.from(chain.providers).length : 0}</TableCell>
+                                  </TableRow>
+                                )
+                              }
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TabPanel>
+                      <TabPanel>
+                      <Table className="mt-6">
+                          <TableHead>
+                            <TableRow>
+                              <TableHeaderCell>Chain Name</TableHeaderCell>
+                              <TableHeaderCell>Chain ID</TableHeaderCell>
+                              <TableHeaderCell className="text-right">#Providers</TableHeaderCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {chainList?.map((chain) => {
+                              if ((chain.providers != null) && (chain.chainName.indexOf('test') != -1)) {
+                                return (
+                                  <TableRow key={chain.chainID}>
+                                    <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainName}</a></TableCell>
+                                    <TableCell><a href="#" className="hover:underline" onClick={() => router.push(`?c=${chain.chainID}`)}>{chain.chainID}</a></TableCell>
+                                    <TableCell className="text-right">{chain.providers != null ? Array.from(chain.providers).length : 0}</TableCell>
+                                  </TableRow>
+                                )
+                              }
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TabPanel>
+                    </TabPanels>
+                  </TabGroup>
                 </>
               </Card>
             </div>
@@ -489,21 +523,21 @@ export default function Home() {
                       <TableBody>
                         {
                           tabChain.providers == undefined ? <></> :
-                          Array.from(tabChain.providers.values()).map((provider) => {
-                            return (
-                              <TableRow key={`${tabChain.chainID}${provider.address}`}>
-                                <TableCell>{provider.moniker}</TableCell>
-                                <TableCell>{provider.address}</TableCell>
-                              </TableRow>
+                            Array.from(tabChain.providers.values()).map((provider) => {
+                              return (
+                                <TableRow key={`${tabChain.chainID}${provider.address}`}>
+                                  <TableCell>{provider.moniker}</TableCell>
+                                  <TableCell>{provider.address}</TableCell>
+                                </TableRow>
 
-                              /*<TableRow key={`${provider.chain}${tabChain.chainID}`}>
-                                <TableCell>{provider.chain}</TableCell>
-                                <TableCell>{`${chain.stake.amount} ${chain.stake.denom}`}</TableCell>
-                                <TableCell>{chain.geolocation}</TableCell>
-                                <TableCell>{chain.stake_applied_block}</TableCell>
-                              </TableRow>*/
-                            )
-                          })
+                                /*<TableRow key={`${provider.chain}${tabChain.chainID}`}>
+                                  <TableCell>{provider.chain}</TableCell>
+                                  <TableCell>{`${chain.stake.amount} ${chain.stake.denom}`}</TableCell>
+                                  <TableCell>{chain.geolocation}</TableCell>
+                                  <TableCell>{chain.stake_applied_block}</TableCell>
+                                </TableRow>*/
+                              )
+                            })
                         }
                       </TableBody>
                     </Table>

@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
-    "@lavanet/lava-sdk": "^0.25.3",
+    "@lavanet/lava-sdk": "^0.25.4",
     "@tremor/react": "^3.9.2",
     "@types/node": "20.8.7",
     "@types/react": "18.2.29",
