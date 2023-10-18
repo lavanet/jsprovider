@@ -22,8 +22,6 @@ import { LavaSDKOptions, LavaSDK } from "@lavanet/lava-sdk";
 import { useRouter } from 'next/navigation'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-const rpc = "https://rest-public-rpc-testnet2.lavanet.xyz"
-
 const config: LavaSDKOptions = {
   badge: {
     badgeServerAddress: process.env.NEXT_PUBLIC_BADGE_SERVER_ADDRESS || "",
@@ -106,7 +104,7 @@ export default function Home() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (chainList == null || chainList.length == 0) {
+    if (chainList == null || chainList.length == 0 || sdkInstance == null) {
       return
     };
 
@@ -114,37 +112,39 @@ export default function Home() {
       let tmpKeyToProvider = new Map<string, Provider>;
 
       const t = chainList.map(async (chain): Promise<any> => {
-        return fetch(rpc + `/lavanet/lava/pairing/providers/${chain.chainID}?showFrozen=true`)
-          .then(res => res.json() as Promise<ProvidersChainRoot>)
-          .then(r => {
-            r.stakeEntry.forEach((stake) => {
-              if (!tmpKeyToProvider.has(stake.address)) {
-                tmpKeyToProvider.set(stake.address, {
-                  address: stake.address,
-                  moniker: stake.moniker,
-                  chains: []
-                })
-              }
-              const provider = tmpKeyToProvider.get(stake.address);
-              provider?.chains.push(stake);
+        await sdkInstance.sendRelay({
+          connectionType: "GET",
+          url: `/lavanet/lava/pairing/providers/${chain.chainID}?showFrozen=true`,
+        }).then((r: ProvidersChainRoot) => {
+         
+          r.stakeEntry.forEach((stake) => {
+            if (!tmpKeyToProvider.has(stake.address)) {
+              tmpKeyToProvider.set(stake.address, {
+                address: stake.address,
+                moniker: stake.moniker,
+                chains: []
+              })
+            }
+            const provider = tmpKeyToProvider.get(stake.address);
+            provider?.chains.push(stake);
 
-              for (let i = 0; i < chainList.length; i++) {
-                if (chainList[i].chainID == stake.chain) {
-                  if (chainList[i].providers === undefined) {
-                    chainList[i].providers = new Map<string, Provider>();
-                    chainList[i].totalStake = 0;
-                  }
-                  if (provider != null) {
-                    chainList[i].providers?.set(provider?.address, provider)
-                    let tmp = chainList[i];
-                    if (tmp.totalStake !== undefined) {
-                      tmp.totalStake += parseInt(stake.stake.amount);
-                    }
-                  }
-                  break;
+            for (let i = 0; i < chainList.length; i++) {
+              if (chainList[i].chainID == stake.chain) {
+                if (chainList[i].providers === undefined) {
+                  chainList[i].providers = new Map<string, Provider>();
+                  chainList[i].totalStake = 0;
                 }
+                if (provider != null) {
+                  chainList[i].providers?.set(provider?.address, provider)
+                  let tmp = chainList[i];
+                  if (tmp.totalStake !== undefined) {
+                    tmp.totalStake += parseInt(stake.stake.amount);
+                  }
+                }
+                break;
               }
-            });
+            }
+        }) 
           });
       });
       await Promise.all(t);
@@ -197,18 +197,8 @@ export default function Home() {
         connectionType: "GET",
         url: "/lavanet/lava/spec/show_all_chains",
       });
-
       let j: ChainInfoRoot = info;
       setChainList(j.chainInfoList);
-
-      /*const info1 = await sdkInstance.sendRelay({
-        method: "GET",
-        url: "/lavanet/lava/pairing/providers/[^/s]+",
-        data: {
-          "chainID": "LAV1",
-        },
-      });
-      console.log(info1);*/
     };
     getChains();
   }, [sdkInstance]);
@@ -527,3 +517,7 @@ export default function Home() {
     </main>
   )
 }
+function r(value: any) {
+  throw new Error("Function not implemented.");
+}
+
