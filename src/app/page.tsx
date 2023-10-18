@@ -29,8 +29,7 @@ const config: LavaSDKOptions = {
     badgeServerAddress: process.env.NEXT_PUBLIC_BADGE_SERVER_ADDRESS || "",
     projectId: process.env.NEXT_PUBLIC_BADGE_PROJECT_ID || "",
   },
-  chainID: "LAV1",
-  rpcInterface: "rest",
+  chainIds: "LAV1",
   geolocation: "2",
 };
 
@@ -184,24 +183,22 @@ export default function Home() {
     }
     const getChains = async () => {
       const block = await sdkInstance.sendRelay({
-        method: "GET",
+        connectionType: "GET",
         url: "/cosmos/base/tendermint/v1beta1/blocks/latest",
       });
-      let ret;
       try {
-        ret = JSON.parse(block);
-        setBlockNumber(Number(ret["block"]["header"]["height"]));
-        setBlockTime(new Date(Date.parse(ret["block"]["header"]["time"])));
+        setBlockNumber(Number(block["block"]["header"]["height"]));
+        setBlockTime(new Date(Date.parse(block["block"]["header"]["time"])));
       } catch (error) {
         console.log("cosmosRelayParse", error, block)
       }
 
       const info = await sdkInstance.sendRelay({
-        method: "GET",
+        connectionType: "GET",
         url: "/lavanet/lava/spec/show_all_chains",
       });
 
-      let j: ChainInfoRoot = JSON.parse(info);
+      let j: ChainInfoRoot = info;
       setChainList(j.chainInfoList);
 
       /*const info1 = await sdkInstance.sendRelay({
@@ -221,7 +218,7 @@ export default function Home() {
       let t;
       try {
         const t0 = performance.now();
-        t = await new LavaSDK(config);
+        t = await LavaSDK.create(config);
         const t1 = performance.now();
         setSdkLoadTime(t1 - t0);
         setSdkInstance(t);
